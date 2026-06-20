@@ -1,0 +1,39 @@
+{
+  "name": "remover-duplicados",
+  "version": "1.0.0",
+  "description": "CLI para remover arquivos duplicados por extensao, tamanho e hash MD5.",
+  "type": "module",
+  "bin": {
+    "remover-duplicados": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:bundle": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --outfile=release/remover-duplicados.mjs",
+    "check": "biome check .",
+    "dev": "tsx src/index.ts",
+    "format": "biome format --write .",
+    "lint": "biome lint .",
+    "smoke": "npm run build && node scripts/smoke-test.mjs",
+    "smoke:bundle": "npm run build:bundle && node scripts/smoke-test.mjs --bundle",
+    "test-code": "biome check . && biome format --write . && biome lint . && npx tsc --noEmit",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": "24.14.0"
+  },
+  "volta": {
+    "node": "24.14.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.0",
+    "@types/node": "26.0.0",
+    "esbuild": "0.28.1",
+    "tsx": "4.22.4",
+    "typescript": "6.0.3"
+  }
+}
