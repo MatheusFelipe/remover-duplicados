@@ -7,6 +7,7 @@ import type {
   OperationError,
 } from '../domain/types.js';
 import type { ErrorLogStream } from './ErrorLogStream.js';
+import { toOperationError } from './operationError.js';
 import type { ProgressLogger } from './ProgressLogger.js';
 
 export class DuplicateDetector {
@@ -109,12 +110,7 @@ export class DuplicateDetector {
     path: string,
     error: unknown,
   ): void {
-    const operationError: OperationError = {
-      at: new Date(),
-      phase,
-      path,
-      message: error instanceof Error ? error.message : String(error),
-    };
+    const operationError = toOperationError({ phase, path, error });
 
     errors.push(operationError);
     this.errorLog.write(operationError);

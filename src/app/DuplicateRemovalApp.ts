@@ -1,9 +1,10 @@
 import { stat } from 'node:fs/promises';
-import type { AppOptions, DuplicateRemovalResult, OperationError } from '../domain/types.js';
+import type { AppOptions, DuplicateRemovalResult } from '../domain/types.js';
 import { DirectoryWalker } from '../services/DirectoryWalker.js';
 import { DuplicateDetector } from '../services/DuplicateDetector.js';
 import { ErrorLogStream } from '../services/ErrorLogStream.js';
 import { FileRemovalService } from '../services/FileRemovalService.js';
+import { toOperationError } from '../services/operationError.js';
 import { ProgressLogger } from '../services/ProgressLogger.js';
 import { ReportWriter } from '../services/ReportWriter.js';
 
@@ -71,12 +72,7 @@ export class DuplicateRemovalApp {
         throw new Error(`Target path is not a directory: ${targetPath}`);
       }
     } catch (error) {
-      const operationError: OperationError = {
-        at: new Date(),
-        phase: 'validation',
-        path: targetPath,
-        message: error instanceof Error ? error.message : String(error),
-      };
+      const operationError = toOperationError({ phase: 'validation', path: targetPath, error });
       errorLog.write(operationError);
       throw error;
     }

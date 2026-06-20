@@ -1,0 +1,13 @@
+---
+description: Smoke check conventions for project scripts
+globs: scripts/**/*.mjs
+alwaysApply: false
+---
+
+# Smoke Checks
+
+- Use `scripts/smoke-test.mjs` for the smallest runnable behavior check.
+- Keep smoke tests framework-free: Node stdlib, fixture folders under `reports/`, and plain assertions.
+- Cover behavior through CLI and imported API when defaults or public options change.
+- Add one focused assertion for non-trivial logic changes instead of creating a new test harness.
+- Keep generated outputs in ignored build/report folders; do not commit fixture output.

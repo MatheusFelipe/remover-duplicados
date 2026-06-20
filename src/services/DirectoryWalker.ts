@@ -3,6 +3,7 @@ import { readdir, stat } from 'node:fs/promises';
 import { extname, relative, resolve } from 'node:path';
 import type { DirectoryEntry, FileEntry, OperationError, WalkResult } from '../domain/types.js';
 import type { ErrorLogStream } from './ErrorLogStream.js';
+import { toOperationError } from './operationError.js';
 import type { ProgressLogger } from './ProgressLogger.js';
 
 export interface WalkOptions {
@@ -101,12 +102,7 @@ export class DirectoryWalker {
     path: string,
     error: unknown,
   ): void {
-    const operationError: OperationError = {
-      at: new Date(),
-      phase,
-      path,
-      message: error instanceof Error ? error.message : String(error),
-    };
+    const operationError = toOperationError({ phase, path, error });
 
     errors.push(operationError);
     this.errorLog.write(operationError);

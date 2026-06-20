@@ -1,0 +1,14 @@
+---
+description: Ponytail TypeScript style for src
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# Ponytail TypeScript
+
+- Prefer Node stdlib and existing services before adding dependencies or abstractions.
+- Delete drift first: hidden flags, duplicated defaults, repeated error shapes, and unused compatibility code.
+- Add helpers only when they remove real repetition across files. Keep helpers boring, typed, and side-effect-light.
+- Keep validation at trust boundaries: CLI args, public API options, and target filesystem paths.
+- Preserve the current class-per-service style unless a smaller edit clearly removes code.
+- Use `type` imports for types, ESM `.js` import specifiers, strict TypeScript, and Biome's 2-space formatting.

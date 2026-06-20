@@ -6,6 +6,7 @@ import type {
   RemoverDuplicadosOptions,
   RunMode,
 } from './domain/types.js';
+import { defaultOutputPaths } from './services/runDefaults.js';
 
 export type {
   AppOptions,
@@ -31,15 +32,15 @@ export async function removerDuplicados(
 
 function toAppOptions(options: RemoverDuplicadosOptions): AppOptions {
   const mode = resolveMode(options);
-  const timestamp = new Date().toISOString().replaceAll(':', '-').replaceAll('.', '-');
+  const outputPaths = defaultOutputPaths(options);
 
   return {
     targetPath: resolve(options.targetPath),
     mode,
     logMode: options.verbose ? 'verbose' : 'silent',
     recursive: options.recursive ?? false,
-    reportPath: resolve(options.reportPath ?? `reports/report-${timestamp}.txt`),
-    errorLogPath: resolve(options.errorLogPath ?? `reports/errors-${timestamp}.txt`),
+    reportPath: outputPaths.reportPath,
+    errorLogPath: outputPaths.errorLogPath,
   };
 }
 

@@ -7,6 +7,7 @@ import type {
   RunMode,
 } from '../domain/types.js';
 import type { ErrorLogStream } from './ErrorLogStream.js';
+import { toOperationError } from './operationError.js';
 import type { ProgressLogger } from './ProgressLogger.js';
 
 export class FileRemovalService {
@@ -36,7 +37,11 @@ export class FileRemovalService {
         removed.push(file);
         this.logger.progress(`Removing: ${removed.length}/${planned.length} files`);
       } catch (error) {
-        const operationError = this.toOperationError(file.absolutePath, error);
+        const operationError = toOperationError({
+          phase: 'remove',
+          path: file.absolutePath,
+          error,
+        });
         failed.push(operationError);
         this.errorLog.write(operationError);
         this.logger.verbose(`Remove failed: ${file.relativePath} - ${operationError.message}`);
@@ -50,15 +55,6 @@ export class FileRemovalService {
       removed,
       failed,
       bytesRemoved: removed.reduce((total, file) => total + file.sizeBytes, 0),
-    };
-  }
-
-  private toOperationError(path: string, error: unknown): OperationError {
-    return {
-      at: new Date(),
-      phase: 'remove',
-      path,
-      message: error instanceof Error ? error.message : String(error),
     };
   }
 }

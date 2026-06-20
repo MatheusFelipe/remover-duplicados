@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import type { AppOptions, LogMode, RunMode } from '../domain/types.js';
+import { defaultOutputPaths } from './runDefaults.js';
 
 export interface ParseResult {
   readonly options?: AppOptions;
@@ -58,7 +59,10 @@ export class ArgumentParser {
     const mode: RunMode = flags.has('--execute') ? 'execute' : 'dry-run';
     const logMode: LogMode = flags.has('--verbose') ? 'verbose' : 'simple';
     const recursive = flags.has('--recursive');
-    const timestamp = new Date().toISOString().replaceAll(':', '-').replaceAll('.', '-');
+    const outputPaths = defaultOutputPaths({
+      reportPath: values.get('--report'),
+      errorLogPath: values.get('--error-log'),
+    });
 
     return {
       options: {
@@ -66,8 +70,8 @@ export class ArgumentParser {
         mode,
         logMode,
         recursive,
-        reportPath: resolve(values.get('--report') ?? `reports/report-${timestamp}.txt`),
-        errorLogPath: resolve(values.get('--error-log') ?? `reports/errors-${timestamp}.txt`),
+        reportPath: outputPaths.reportPath,
+        errorLogPath: outputPaths.errorLogPath,
       },
     };
   }
@@ -95,6 +99,6 @@ export class ArgumentParser {
   }
 
   private isFlag(arg: string): boolean {
-    return ['--dry-run', '--execute', '--recursive', '--verbose', '--simple'].includes(arg);
+    return ['--dry-run', '--execute', '--recursive', '--verbose'].includes(arg);
   }
 }

@@ -1,0 +1,14 @@
+---
+description: Source folder responsibilities for the duplicate remover
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# Source Responsibilities
+
+- `src/cli.ts` is only the executable boundary: parse argv, print help/errors, run the app.
+- `src/index.ts` is only the package API boundary: export public types and adapt API options into app options.
+- `src/app/` orchestrates services and validates run-level inputs; avoid filesystem details here unless they are boundary validation.
+- `src/domain/` owns shared type contracts. Keep it free of I/O and process side effects.
+- `src/services/` owns single-purpose work: parsing, walking, hashing, removing, logging, reporting, and tiny shared helpers.
+- Keep behavior changes near the owning service. Move code only when it removes repeated logic used by multiple owners.

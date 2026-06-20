@@ -211,6 +211,8 @@ Esses comandos criam uma fixture em `reports/smoke-input`, rodam dry-run, rodam 
 
 Projeto desenvolvido com auxílio do Cursor, utilizando o modelo GPT-5.5.
 
+A regra Ponytail usada neste projeto foi criada por Dietrich Gebert: https://github.com/DietrichGebert/ponytail
+
 ## Licença
 
 Este projeto está licenciado sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
