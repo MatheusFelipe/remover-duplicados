@@ -57,6 +57,7 @@ export class ArgumentParser {
 
     const mode: RunMode = flags.has('--execute') ? 'execute' : 'dry-run';
     const logMode: LogMode = flags.has('--verbose') ? 'verbose' : 'simple';
+    const recursive = flags.has('--recursive');
     const timestamp = new Date().toISOString().replaceAll(':', '-').replaceAll('.', '-');
 
     return {
@@ -64,6 +65,7 @@ export class ArgumentParser {
         targetPath: resolve(targetPath),
         mode,
         logMode,
+        recursive,
         reportPath: resolve(values.get('--report') ?? `reports/report-${timestamp}.txt`),
         errorLogPath: resolve(values.get('--error-log') ?? `reports/errors-${timestamp}.txt`),
       },
@@ -73,13 +75,14 @@ export class ArgumentParser {
   usage(): string {
     return [
       'Usage:',
-      '  npm run dev -- --path <folder> [--dry-run|--execute] [--verbose]',
-      '  npm run start -- --path <folder> [--dry-run|--execute] [--verbose]',
+      '  npm run dev -- --path <folder> [--dry-run|--execute] [--recursive] [--verbose]',
+      '  npm run start -- --path <folder> [--dry-run|--execute] [--recursive] [--verbose]',
       '',
       'Options:',
       '  --path <folder>       Folder to scan recursively. Positional path also works.',
       '  --dry-run             Do not remove files. Default mode.',
       '  --execute             Remove duplicate files.',
+      '  --recursive           Scan subfolders recursively.',
       '  --verbose             Print detailed progress logs.',
       '  --report <file>       Report txt output path.',
       '  --error-log <file>    Error txt output path.',
@@ -92,6 +95,6 @@ export class ArgumentParser {
   }
 
   private isFlag(arg: string): boolean {
-    return ['--dry-run', '--execute', '--verbose', '--simple'].includes(arg);
+    return ['--dry-run', '--execute', '--recursive', '--verbose', '--simple'].includes(arg);
   }
 }

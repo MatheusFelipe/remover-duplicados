@@ -1,24 +1,36 @@
 {
   "name": "remover-duplicados",
   "version": "1.0.0",
-  "description": "CLI para remover arquivos duplicados por extensao, tamanho e hash MD5.",
+  "description": "API e CLI para remover arquivos duplicados por extensao, tamanho e hash MD5.",
   "type": "module",
   "bin": {
-    "remover-duplicados": "./dist/index.js"
+    "remover-duplicados": "./dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./cli": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:bundle": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --outfile=release/remover-duplicados.mjs",
+    "build:bundle": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node24 --outfile=release/remover-duplicados.mjs",
     "check": "biome check .",
-    "dev": "tsx src/index.ts",
+    "dev": "tsx src/cli.ts",
     "format": "biome format --write .",
     "lint": "biome lint .",
     "smoke": "npm run build && node scripts/smoke-test.mjs",
-    "smoke:bundle": "npm run build:bundle && node scripts/smoke-test.mjs --bundle",
+    "smoke:bundle": "npm run build && npm run build:bundle && node scripts/smoke-test.mjs --bundle",
     "test-code": "biome check . && biome format --write . && biome lint . && npx tsc --noEmit",
-    "start": "node dist/index.js"
+    "start": "node dist/cli.js"
   },
   "keywords": [],
   "author": "",

@@ -1,5 +1,5 @@
 import { stat } from 'node:fs/promises';
-import type { AppOptions, OperationError } from '../domain/types.js';
+import type { AppOptions, DuplicateRemovalResult, OperationError } from '../domain/types.js';
 import { DirectoryWalker } from '../services/DirectoryWalker.js';
 import { DuplicateDetector } from '../services/DuplicateDetector.js';
 import { ErrorLogStream } from '../services/ErrorLogStream.js';
@@ -8,7 +8,7 @@ import { ProgressLogger } from '../services/ProgressLogger.js';
 import { ReportWriter } from '../services/ReportWriter.js';
 
 export class DuplicateRemovalApp {
-  async run(options: AppOptions): Promise<void> {
+  async run(options: AppOptions): Promise<DuplicateRemovalResult> {
     const logger = new ProgressLogger(options.logMode);
     const errorLog = new ErrorLogStream(options.errorLogPath);
     await errorLog.open();
@@ -26,7 +26,7 @@ export class DuplicateRemovalApp {
       const remover = new FileRemovalService(logger, errorLog);
       const reportWriter = new ReportWriter();
 
-      const walk = await walker.walk(options.targetPath);
+      const walk = await walker.walk(options.targetPath, { recursive: options.recursive });
       const detection = await detector.detect(walk.files);
       const removal = await remover.remove(detection.groups, options.mode);
 
@@ -39,6 +39,25 @@ export class DuplicateRemovalApp {
       });
 
       logger.info(`Report written: ${options.reportPath}`);
+
+      const duplicateFiles = detection.groups.flatMap((group) => group.duplicates);
+      const errorsFound = walk.errors.length + detection.errors.length + removal.failed.length;
+
+      return {
+        targetPath: options.targetPath,
+        mode: options.mode,
+        recursive: options.recursive,
+        reportPath: options.reportPath,
+        errorLogPath: options.errorLogPath,
+        walk,
+        detection,
+        removal,
+        duplicateGroupsFound: detection.groups.length,
+        duplicateFilesFound: duplicateFiles.length,
+        bytesRecoverable: duplicateFiles.reduce((total, file) => total + file.sizeBytes, 0),
+        bytesRemoved: removal.bytesRemoved,
+        errorsFound,
+      };
     } finally {
       await errorLog.close();
     }

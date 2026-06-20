@@ -4,6 +4,10 @@ export class ProgressLogger {
   constructor(private readonly mode: LogMode) {}
 
   info(message: string): void {
+    if (this.mode === 'silent') {
+      return;
+    }
+
     console.log(message);
   }
 
@@ -14,6 +18,10 @@ export class ProgressLogger {
   }
 
   progress(message: string): void {
+    if (this.mode === 'silent') {
+      return;
+    }
+
     if (this.mode === 'simple') {
       process.stdout.write(`\r${message}`);
       return;
@@ -23,6 +31,10 @@ export class ProgressLogger {
   }
 
   finishProgress(message: string): void {
+    if (this.mode === 'silent') {
+      return;
+    }
+
     if (this.mode === 'simple') {
       process.stdout.write(`\r${message}\n`);
       return;

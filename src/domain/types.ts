@@ -1,11 +1,12 @@
 export type RunMode = 'dry-run' | 'execute';
 
-export type LogMode = 'simple' | 'verbose';
+export type LogMode = 'silent' | 'simple' | 'verbose';
 
 export interface AppOptions {
   readonly targetPath: string;
   readonly mode: RunMode;
   readonly logMode: LogMode;
+  readonly recursive: boolean;
   readonly reportPath: string;
   readonly errorLogPath: string;
 }
@@ -70,4 +71,30 @@ export interface RunStats {
   readonly bytesRecoverable: number;
   readonly bytesRemoved: number;
   readonly errorsFound: number;
+}
+
+export interface DuplicateRemovalResult {
+  readonly targetPath: string;
+  readonly mode: RunMode;
+  readonly recursive: boolean;
+  readonly reportPath: string;
+  readonly errorLogPath: string;
+  readonly walk: WalkResult;
+  readonly detection: DetectionResult;
+  readonly removal: RemovalResult;
+  readonly duplicateGroupsFound: number;
+  readonly duplicateFilesFound: number;
+  readonly bytesRecoverable: number;
+  readonly bytesRemoved: number;
+  readonly errorsFound: number;
+}
+
+export interface RemoverDuplicadosOptions {
+  readonly targetPath: string;
+  readonly mode?: RunMode;
+  readonly execute?: boolean;
+  readonly recursive?: boolean;
+  readonly verbose?: boolean;
+  readonly reportPath?: string;
+  readonly errorLogPath?: string;
 }

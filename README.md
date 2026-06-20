@@ -1,8 +1,8 @@
 # Removedor de Duplicados
 
-CLI em Node.js + TypeScript para encontrar e remover arquivos duplicados dentro de uma pasta.
+API e CLI em Node.js + TypeScript para encontrar e remover arquivos duplicados dentro de uma pasta.
 
-O script percorre pastas recursivamente, agrupa arquivos por extensão e tamanho em bytes, e calcula MD5 apenas nos grupos candidatos. Duplicata confirmada = mesma extensão, mesmo tamanho e mesmo MD5. O primeiro caminho em ordem lexicográfica é mantido; os demais podem ser removidos.
+Por padrão, o script analisa apenas os arquivos diretamente dentro da pasta informada. Use `--recursive` na CLI ou `recursive: true` na API para descer em subpastas. Ele agrupa arquivos por extensão e tamanho em bytes, e calcula MD5 apenas nos grupos candidatos. Duplicata confirmada = mesma extensão, mesmo tamanho e mesmo MD5. O primeiro caminho em ordem lexicográfica é mantido; os demais podem ser removidos.
 
 ## Pré-requisitos
 
@@ -21,6 +21,7 @@ npm install
 
 ```bash
 npm run dev -- --path /caminho/da/pasta --dry-run
+npm run dev -- --path /caminho/da/pasta --recursive --dry-run
 npm run build
 npm run build:bundle
 npm run start -- --path /caminho/da/pasta --dry-run
@@ -35,8 +36,16 @@ npm run format
 
 Dry-run é o modo padrão. Ele não remove arquivos e gera um relatório `.txt` com estatísticas, duplicatas encontradas, arquivos que seriam removidos e snapshot final esperado.
 
+Sem `--recursive`, apenas os arquivos diretamente dentro da pasta alvo são analisados.
+
 ```bash
 npm run dev -- --path /caminho/da/pasta
+```
+
+Para analisar subpastas também, use `--recursive`:
+
+```bash
+npm run dev -- --path /caminho/da/pasta --recursive
 ```
 
 Para remover duplicatas de fato, use `--execute`:
@@ -51,6 +60,7 @@ Opções disponíveis:
 --path <dir>       Pasta alvo. Também aceita caminho posicional.
 --dry-run          Simula remoção. Padrão.
 --execute          Remove arquivos duplicados.
+--recursive        Analisa subpastas recursivamente.
 --verbose          Mostra logs detalhados.
 --report <file>    Caminho do relatório txt.
 --error-log <file> Caminho do log de erros txt.
@@ -60,7 +70,46 @@ Opções disponíveis:
 Exemplo com relatório customizado:
 
 ```bash
-npm run dev -- --path ~/Fotos --dry-run --report reports/fotos-dry-run.txt --error-log reports/fotos-errors.txt
+npm run dev -- --path ~/Fotos --recursive --dry-run --report reports/fotos-dry-run.txt --error-log reports/fotos-errors.txt
+```
+
+## Usar Como Pacote Local
+
+Sem publicar no npm, gere o build:
+
+```bash
+npm install
+npm run build
+```
+
+No outro projeto, instale por caminho local:
+
+```bash
+npm install ../remover-duplicados
+```
+
+Ou declare no `package.json` do projeto consumidor:
+
+```json
+{
+  "dependencies": {
+    "remover-duplicados": "file:../remover-duplicados"
+  }
+}
+```
+
+Uso programático:
+
+```ts
+import { removerDuplicados } from 'remover-duplicados';
+
+const result = await removerDuplicados({
+  targetPath: '/caminho/da/pasta',
+  mode: 'dry-run',
+  recursive: true,
+});
+
+console.log(result.duplicateFilesFound);
 ```
 
 ## Gerar Bundle Único
@@ -111,7 +160,7 @@ Rodar na pasta sincronizada:
 
 ```bash
 node remover-duplicados.mjs --path /caminho/da/pasta --dry-run
-node remover-duplicados.mjs --path /caminho/da/pasta --execute --verbose
+node remover-duplicados.mjs --path /caminho/da/pasta --recursive --execute --verbose
 ```
 
 Não copie `node_modules`. Também não precisa copiar `dist/` nem `package.json` quando usar o bundle `.mjs`.
@@ -122,7 +171,7 @@ Também é possível usar a saída normal do TypeScript:
 
 ```bash
 npm run build
-node dist/index.js --path /caminho/da/pasta --dry-run
+node dist/cli.js --path /caminho/da/pasta --dry-run
 ```
 
 Nesse formato, é necessário manter `dist/` e um `package.json` com `"type": "module"` junto/acima da pasta `dist/`. Para uso isolado, prefira o bundle único.
@@ -152,7 +201,9 @@ npm run smoke:bundle
 
 Esses comandos criam uma fixture em `reports/smoke-input`, rodam dry-run, rodam execute, e validam que:
 
-- duplicata real foi removida no execute;
+- o modo padrão não remove duplicatas em subpastas;
+- `--recursive` encontra e remove duplicatas em subpastas;
+- o import programático respeita `recursive: false` e `recursive: true`;
 - arquivo mantido continuou existindo;
 - arquivos com mesmo tamanho mas conteúdo diferente não foram removidos.
 

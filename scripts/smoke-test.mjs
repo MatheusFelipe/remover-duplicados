@@ -2,37 +2,88 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const fixtureRoot = 'reports/smoke-input';
-const dryReport = 'reports/smoke-dry.txt';
-const executeReport = 'reports/smoke-execute.txt';
+const cliFixtureRoot = 'reports/smoke-cli-input';
+const apiFixtureRoot = 'reports/smoke-api-input';
+const defaultDryReport = 'reports/smoke-default-dry.txt';
+const defaultExecuteReport = 'reports/smoke-default-execute.txt';
+const recursiveDryReport = 'reports/smoke-recursive-dry.txt';
+const recursiveExecuteReport = 'reports/smoke-recursive-execute.txt';
+const apiDefaultReport = 'reports/smoke-api-default.txt';
+const apiRecursiveReport = 'reports/smoke-api-recursive.txt';
 const errorLog = 'reports/smoke-errors.txt';
 const cliEntry = process.argv.includes('--bundle')
   ? 'release/remover-duplicados.mjs'
-  : 'dist/index.js';
+  : 'dist/cli.js';
 
-function main() {
-  resetFixture();
-  runCli(['--path', fixtureRoot, '--dry-run', '--report', dryReport, '--error-log', errorLog]);
-  assertDryRun();
+async function main() {
+  resetFixture(cliFixtureRoot);
+  runCli([
+    '--path',
+    cliFixtureRoot,
+    '--dry-run',
+    '--report',
+    defaultDryReport,
+    '--error-log',
+    errorLog,
+  ]);
+  assertDefaultDryRun();
 
-  runCli(['--path', fixtureRoot, '--execute', '--report', executeReport, '--error-log', errorLog]);
-  assertExecute();
+  runCli([
+    '--path',
+    cliFixtureRoot,
+    '--execute',
+    '--report',
+    defaultExecuteReport,
+    '--error-log',
+    errorLog,
+  ]);
+  assertDefaultExecute();
+
+  runCli([
+    '--path',
+    cliFixtureRoot,
+    '--recursive',
+    '--dry-run',
+    '--report',
+    recursiveDryReport,
+    '--error-log',
+    errorLog,
+  ]);
+  assertRecursiveDryRun();
+
+  runCli([
+    '--path',
+    cliFixtureRoot,
+    '--recursive',
+    '--execute',
+    '--report',
+    recursiveExecuteReport,
+    '--error-log',
+    errorLog,
+  ]);
+  assertRecursiveExecute();
+
+  await assertImportedApi();
 
   console.log('Smoke test passed.');
 }
 
-function resetFixture() {
-  rmSync(fixtureRoot, { recursive: true, force: true });
-  rmSync(dryReport, { force: true });
-  rmSync(executeReport, { force: true });
+function resetFixture(root) {
+  rmSync(root, { recursive: true, force: true });
+  rmSync(defaultDryReport, { force: true });
+  rmSync(defaultExecuteReport, { force: true });
+  rmSync(recursiveDryReport, { force: true });
+  rmSync(recursiveExecuteReport, { force: true });
+  rmSync(apiDefaultReport, { force: true });
+  rmSync(apiRecursiveReport, { force: true });
   rmSync(errorLog, { force: true });
 
-  mkdirSync(join(fixtureRoot, 'nested'), { recursive: true });
-  writeFileSync(join(fixtureRoot, 'keep-a.txt'), 'same-content');
-  writeFileSync(join(fixtureRoot, 'nested', 'dup-a.txt'), 'same-content');
-  writeFileSync(join(fixtureRoot, 'unique.txt'), 'unique-content');
-  writeFileSync(join(fixtureRoot, 'same-size-a.txt'), 'xxxx');
-  writeFileSync(join(fixtureRoot, 'nested', 'same-size-b.txt'), 'yyyy');
+  mkdirSync(join(root, 'nested'), { recursive: true });
+  writeFileSync(join(root, 'keep-a.txt'), 'same-content');
+  writeFileSync(join(root, 'nested', 'dup-a.txt'), 'same-content');
+  writeFileSync(join(root, 'unique.txt'), 'unique-content');
+  writeFileSync(join(root, 'same-size-a.txt'), 'xxxx');
+  writeFileSync(join(root, 'nested', 'same-size-b.txt'), 'yyyy');
 }
 
 function runCli(args) {
@@ -48,32 +99,112 @@ function runCli(args) {
   }
 }
 
-function assertDryRun() {
-  assert(existsSync(join(fixtureRoot, 'nested', 'dup-a.txt')), 'dry-run removed duplicate file');
-
-  const report = readFileSync(dryReport, 'utf8');
-  assert(report.includes('Mode: dry-run'), 'dry-run report missing mode');
-  assert(report.includes('Duplicate groups: 1'), 'dry-run report should find one duplicate group');
+function assertDefaultDryRun() {
   assert(
-    report.includes('Would remove: nested/dup-a.txt'),
-    'dry-run report missing planned removal',
+    existsSync(join(cliFixtureRoot, 'nested', 'dup-a.txt')),
+    'default dry-run removed nested duplicate file',
+  );
+
+  const report = readFileSync(defaultDryReport, 'utf8');
+  assert(report.includes('Mode: dry-run'), 'default dry-run report missing mode');
+  assert(report.includes('Duplicate groups: 0'), 'default dry-run should not scan subfolders');
+  assert(
+    !report.includes('Would remove: nested/dup-a.txt'),
+    'default dry-run should not plan nested duplicate removal',
   );
 }
 
-function assertExecute() {
-  const files = listFiles(fixtureRoot);
+function assertDefaultExecute() {
+  const files = listFiles(cliFixtureRoot);
 
-  assert(!files.includes('nested/dup-a.txt'), 'execute did not remove duplicate file');
-  assert(files.includes('keep-a.txt'), 'execute removed kept file');
-  assert(files.includes('same-size-a.txt'), 'execute removed same-size different-content file');
   assert(
-    files.includes('nested/same-size-b.txt'),
-    'execute removed same-size different-content file',
+    files.includes('nested/dup-a.txt'),
+    'default execute removed nested duplicate without --recursive',
   );
 
-  const report = readFileSync(executeReport, 'utf8');
-  assert(report.includes('Mode: execute'), 'execute report missing mode');
-  assert(report.includes('Removed: nested/dup-a.txt'), 'execute report missing removed file');
+  const report = readFileSync(defaultExecuteReport, 'utf8');
+  assert(report.includes('Mode: execute'), 'default execute report missing mode');
+  assert(
+    report.includes('Duplicate groups: 0'),
+    'default execute should not find nested duplicate group',
+  );
+}
+
+function assertRecursiveDryRun() {
+  assert(
+    existsSync(join(cliFixtureRoot, 'nested', 'dup-a.txt')),
+    'recursive dry-run removed duplicate file',
+  );
+
+  const report = readFileSync(recursiveDryReport, 'utf8');
+  assert(report.includes('Mode: dry-run'), 'recursive dry-run report missing mode');
+  assert(
+    report.includes('Duplicate groups: 1'),
+    'recursive dry-run should find one duplicate group',
+  );
+  assert(
+    report.includes('Would remove: nested/dup-a.txt'),
+    'recursive dry-run report missing planned removal',
+  );
+}
+
+function assertRecursiveExecute() {
+  const files = listFiles(cliFixtureRoot);
+
+  assert(!files.includes('nested/dup-a.txt'), 'recursive execute did not remove duplicate file');
+  assert(files.includes('keep-a.txt'), 'recursive execute removed kept file');
+  assert(
+    files.includes('same-size-a.txt'),
+    'recursive execute removed same-size different-content file',
+  );
+  assert(
+    files.includes('nested/same-size-b.txt'),
+    'recursive execute removed same-size different-content file',
+  );
+
+  const report = readFileSync(recursiveExecuteReport, 'utf8');
+  assert(report.includes('Mode: execute'), 'recursive execute report missing mode');
+  assert(
+    report.includes('Removed: nested/dup-a.txt'),
+    'recursive execute report missing removed file',
+  );
+}
+
+async function assertImportedApi() {
+  const { removerDuplicados } = await import('../dist/index.js');
+
+  resetFixture(apiFixtureRoot);
+  const defaultResult = await removerDuplicados({
+    targetPath: apiFixtureRoot,
+    mode: 'dry-run',
+    reportPath: apiDefaultReport,
+    errorLogPath: errorLog,
+  });
+
+  assert(defaultResult.recursive === false, 'API default should be non-recursive');
+  assert(defaultResult.duplicateGroupsFound === 0, 'API default should not scan subfolders');
+  assert(
+    existsSync(join(apiFixtureRoot, 'nested', 'dup-a.txt')),
+    'API default removed nested duplicate file',
+  );
+
+  const recursiveResult = await removerDuplicados({
+    targetPath: apiFixtureRoot,
+    mode: 'execute',
+    recursive: true,
+    reportPath: apiRecursiveReport,
+    errorLogPath: errorLog,
+  });
+
+  assert(recursiveResult.recursive === true, 'API recursive result missing recursive flag');
+  assert(
+    recursiveResult.duplicateGroupsFound === 1,
+    'API recursive should find one duplicate group',
+  );
+  assert(
+    !existsSync(join(apiFixtureRoot, 'nested', 'dup-a.txt')),
+    'API recursive execute did not remove nested duplicate',
+  );
 }
 
 function listFiles(root, base = root) {
@@ -100,4 +231,4 @@ function assert(condition, message) {
   }
 }
 
-main();
+await main();

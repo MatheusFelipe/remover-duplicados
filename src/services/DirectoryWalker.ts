@@ -5,19 +5,23 @@ import type { DirectoryEntry, FileEntry, OperationError, WalkResult } from '../d
 import type { ErrorLogStream } from './ErrorLogStream.js';
 import type { ProgressLogger } from './ProgressLogger.js';
 
+export interface WalkOptions {
+  readonly recursive: boolean;
+}
+
 export class DirectoryWalker {
   constructor(
     private readonly logger: ProgressLogger,
     private readonly errorLog: ErrorLogStream,
   ) {}
 
-  async walk(rootPath: string): Promise<WalkResult> {
+  async walk(rootPath: string, options: WalkOptions): Promise<WalkResult> {
     const absoluteRoot = resolve(rootPath);
     const directories: DirectoryEntry[] = [];
     const files: FileEntry[] = [];
     const errors: OperationError[] = [];
 
-    await this.walkDirectory(absoluteRoot, absoluteRoot, directories, files, errors);
+    await this.walkDirectory(absoluteRoot, absoluteRoot, options, directories, files, errors);
     this.logger.finishProgress(
       `Traversal done: ${directories.length} folders, ${files.length} files, ${errors.length} errors.`,
     );
@@ -33,6 +37,7 @@ export class DirectoryWalker {
   private async walkDirectory(
     rootPath: string,
     currentPath: string,
+    options: WalkOptions,
     directories: DirectoryEntry[],
     files: FileEntry[],
     errors: OperationError[],
@@ -56,7 +61,11 @@ export class DirectoryWalker {
       const absolutePath = resolve(currentPath, entry.name);
 
       if (entry.isDirectory()) {
-        await this.walkDirectory(rootPath, absolutePath, directories, files, errors);
+        if (options.recursive) {
+          await this.walkDirectory(rootPath, absolutePath, options, directories, files, errors);
+        } else {
+          this.logger.verbose(`Skipping folder: ${this.toRelative(rootPath, absolutePath)}`);
+        }
         continue;
       }
 
