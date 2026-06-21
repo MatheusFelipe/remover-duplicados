@@ -35,7 +35,12 @@ export class FileRemovalService {
       try {
         await unlink(file.absolutePath);
         removed.push(file);
-        this.logger.progress(`Removing: ${removed.length}/${planned.length} files`);
+        this.logger.progress(
+          `Removing: ${removed.length}/${planned.length} files (${this.percentage(
+            removed.length,
+            planned.length,
+          )}%)`,
+        );
       } catch (error) {
         const operationError = toOperationError({
           phase: 'remove',
@@ -56,5 +61,13 @@ export class FileRemovalService {
       failed,
       bytesRemoved: removed.reduce((total, file) => total + file.sizeBytes, 0),
     };
+  }
+
+  private percentage(done: number, total: number): number {
+    if (total === 0) {
+      return 100;
+    }
+
+    return Math.floor((done / total) * 100);
   }
 }

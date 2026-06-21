@@ -21,13 +21,19 @@ export class DuplicateRemovalApp {
       logger.info(`Target: ${options.targetPath}`);
       logger.info(`Report: ${options.reportPath}`);
       logger.info(`Error log: ${options.errorLogPath}`);
+      if (options.maxBytes !== undefined) {
+        logger.info(`Max bytes: ${options.maxBytes}`);
+      }
 
       const walker = new DirectoryWalker(logger, errorLog);
       const detector = new DuplicateDetector(logger, errorLog);
       const remover = new FileRemovalService(logger, errorLog);
       const reportWriter = new ReportWriter();
 
-      const walk = await walker.walk(options.targetPath, { recursive: options.recursive });
+      const walk = await walker.walk(options.targetPath, {
+        recursive: options.recursive,
+        maxBytes: options.maxBytes,
+      });
       const detection = await detector.detect(walk.files);
       const removal = await remover.remove(detection.groups, options.mode);
 
@@ -48,6 +54,7 @@ export class DuplicateRemovalApp {
         targetPath: options.targetPath,
         mode: options.mode,
         recursive: options.recursive,
+        maxBytes: options.maxBytes,
         reportPath: options.reportPath,
         errorLogPath: options.errorLogPath,
         walk,

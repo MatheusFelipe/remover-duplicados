@@ -4,12 +4,15 @@ import { join } from 'node:path';
 
 const cliFixtureRoot = 'reports/smoke-cli-input';
 const apiFixtureRoot = 'reports/smoke-api-input';
+const maxBytesFixtureRoot = 'reports/smoke-max-bytes-input';
 const defaultDryReport = 'reports/smoke-default-dry.txt';
 const defaultExecuteReport = 'reports/smoke-default-execute.txt';
 const recursiveDryReport = 'reports/smoke-recursive-dry.txt';
 const recursiveExecuteReport = 'reports/smoke-recursive-execute.txt';
+const maxBytesReport = 'reports/smoke-max-bytes.txt';
 const apiDefaultReport = 'reports/smoke-api-default.txt';
 const apiRecursiveReport = 'reports/smoke-api-recursive.txt';
+const apiMaxBytesReport = 'reports/smoke-api-max-bytes.txt';
 const errorLog = 'reports/smoke-errors.txt';
 const cliEntry = process.argv.includes('--bundle')
   ? 'release/remover-duplicados.mjs'
@@ -63,6 +66,21 @@ async function main() {
   ]);
   assertRecursiveExecute();
 
+  resetMaxBytesFixture(maxBytesFixtureRoot);
+  runCli([
+    '--path',
+    maxBytesFixtureRoot,
+    '--recursive',
+    '--dry-run',
+    '--max-bytes',
+    '4',
+    '--report',
+    maxBytesReport,
+    '--error-log',
+    errorLog,
+  ]);
+  assertMaxBytesDryRun();
+
   await assertImportedApi();
 
   console.log('Smoke test passed.');
@@ -74,8 +92,10 @@ function resetFixture(root) {
   rmSync(defaultExecuteReport, { force: true });
   rmSync(recursiveDryReport, { force: true });
   rmSync(recursiveExecuteReport, { force: true });
+  rmSync(maxBytesReport, { force: true });
   rmSync(apiDefaultReport, { force: true });
   rmSync(apiRecursiveReport, { force: true });
+  rmSync(apiMaxBytesReport, { force: true });
   rmSync(errorLog, { force: true });
 
   mkdirSync(join(root, 'nested'), { recursive: true });
@@ -84,6 +104,15 @@ function resetFixture(root) {
   writeFileSync(join(root, 'unique.txt'), 'unique-content');
   writeFileSync(join(root, 'same-size-a.txt'), 'xxxx');
   writeFileSync(join(root, 'nested', 'same-size-b.txt'), 'yyyy');
+}
+
+function resetMaxBytesFixture(root) {
+  rmSync(root, { recursive: true, force: true });
+  mkdirSync(join(root, 'nested'), { recursive: true });
+  writeFileSync(join(root, 'small-keep.txt'), 'tiny');
+  writeFileSync(join(root, 'nested', 'small-dup.txt'), 'tiny');
+  writeFileSync(join(root, 'large-keep.txt'), 'large-content');
+  writeFileSync(join(root, 'nested', 'large-dup.txt'), 'large-content');
 }
 
 function runCli(args) {
@@ -170,6 +199,20 @@ function assertRecursiveExecute() {
   );
 }
 
+function assertMaxBytesDryRun() {
+  const report = readFileSync(maxBytesReport, 'utf8');
+
+  assert(report.includes('Duplicate groups: 1'), 'max-bytes should keep one small duplicate group');
+  assert(
+    report.includes('Would remove: small-keep.txt'),
+    'max-bytes report missing small planned removal',
+  );
+  assert(
+    !report.includes('Would remove: nested/large-dup.txt'),
+    'max-bytes should skip duplicate files over the limit',
+  );
+}
+
 async function assertImportedApi() {
   const { removerDuplicados } = await import('../dist/index.js');
 
@@ -204,6 +247,22 @@ async function assertImportedApi() {
   assert(
     !existsSync(join(apiFixtureRoot, 'nested', 'dup-a.txt')),
     'API recursive execute did not remove nested duplicate',
+  );
+
+  resetMaxBytesFixture(maxBytesFixtureRoot);
+  const maxBytesResult = await removerDuplicados({
+    targetPath: maxBytesFixtureRoot,
+    mode: 'dry-run',
+    recursive: true,
+    maxBytes: 4,
+    reportPath: apiMaxBytesReport,
+    errorLogPath: errorLog,
+  });
+
+  assert(maxBytesResult.maxBytes === 4, 'API maxBytes result missing maxBytes flag');
+  assert(
+    maxBytesResult.duplicateGroupsFound === 1,
+    'API maxBytes should find only the small duplicate group',
   );
 }
 

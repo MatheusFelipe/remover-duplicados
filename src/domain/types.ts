@@ -7,6 +7,7 @@ export interface AppOptions {
   readonly mode: RunMode;
   readonly logMode: LogMode;
   readonly recursive: boolean;
+  readonly maxBytes?: number;
   readonly reportPath: string;
   readonly errorLogPath: string;
 }
@@ -77,6 +78,7 @@ export interface DuplicateRemovalResult {
   readonly targetPath: string;
   readonly mode: RunMode;
   readonly recursive: boolean;
+  readonly maxBytes?: number;
   readonly reportPath: string;
   readonly errorLogPath: string;
   readonly walk: WalkResult;
@@ -95,6 +97,7 @@ export interface RemoverDuplicadosOptions {
   readonly execute?: boolean;
   readonly recursive?: boolean;
   readonly verbose?: boolean;
+  readonly maxBytes?: number;
   readonly reportPath?: string;
   readonly errorLogPath?: string;
 }

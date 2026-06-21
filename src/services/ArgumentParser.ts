@@ -2,6 +2,8 @@ import { resolve } from 'node:path';
 import type { AppOptions, LogMode, RunMode } from '../domain/types.js';
 import { defaultOutputPaths } from './runDefaults.js';
 
+type SizeUnit = 'b' | 'kb' | 'mb' | 'gb';
+
 export interface ParseResult {
   readonly options?: AppOptions;
   readonly help?: string;
@@ -59,6 +61,7 @@ export class ArgumentParser {
     const mode: RunMode = flags.has('--execute') ? 'execute' : 'dry-run';
     const logMode: LogMode = flags.has('--verbose') ? 'verbose' : 'simple';
     const recursive = flags.has('--recursive');
+    const maxBytesValue = values.get('--max-bytes');
     const outputPaths = defaultOutputPaths({
       reportPath: values.get('--report'),
       errorLogPath: values.get('--error-log'),
@@ -70,6 +73,7 @@ export class ArgumentParser {
         mode,
         logMode,
         recursive,
+        maxBytes: maxBytesValue ? this.parseMaxBytes(maxBytesValue) : undefined,
         reportPath: outputPaths.reportPath,
         errorLogPath: outputPaths.errorLogPath,
       },
@@ -88,14 +92,44 @@ export class ArgumentParser {
       '  --execute             Remove duplicate files.',
       '  --recursive           Scan subfolders recursively.',
       '  --verbose             Print detailed progress logs.',
+      '  --max-bytes <size>    Process only files up to this size. Examples: 1024, 1mb.',
       '  --report <file>       Report txt output path.',
       '  --error-log <file>    Error txt output path.',
       '  --help                Show this help.',
     ].join('\n');
   }
 
+  private parseMaxBytes(value: string): number {
+    const match = value
+      .trim()
+      .toLowerCase()
+      .match(/^(\d+)(b|kb|mb|gb)?$/);
+    if (!match) {
+      throw new Error(
+        `Invalid --max-bytes value: ${value}. Use bytes or units like 1kb, 1mb, 1gb.`,
+      );
+    }
+
+    const [, amount, rawUnit = 'b'] = match;
+    const unit = rawUnit as SizeUnit;
+    const multipliers: Record<SizeUnit, number> = {
+      b: 1,
+      kb: 1024,
+      mb: 1024 ** 2,
+      gb: 1024 ** 3,
+    };
+    const multiplier = multipliers[unit];
+    const bytes = Number(amount) * multiplier;
+
+    if (!Number.isSafeInteger(bytes)) {
+      throw new Error(`Invalid --max-bytes value: ${value}. Value is too large.`);
+    }
+
+    return bytes;
+  }
+
   private isValueOption(arg: string): boolean {
-    return ['--path', '--report', '--error-log'].includes(arg);
+    return ['--path', '--report', '--error-log', '--max-bytes'].includes(arg);
   }
 
   private isFlag(arg: string): boolean {

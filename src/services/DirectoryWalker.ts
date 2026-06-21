@@ -8,6 +8,7 @@ import type { ProgressLogger } from './ProgressLogger.js';
 
 export interface WalkOptions {
   readonly recursive: boolean;
+  readonly maxBytes?: number;
 }
 
 export class DirectoryWalker {
@@ -48,7 +49,9 @@ export class DirectoryWalker {
       relativePath: this.toRelative(rootPath, currentPath),
     };
     directories.push(directory);
-    this.logger.verbose(`Scanning folder: ${directory.relativePath}`);
+    this.logger.verbose(
+      `Scanning folder: ${directory.relativePath} (${directories.length} folders, ${files.length} files included)`,
+    );
 
     let entries: Dirent[];
     try {
@@ -77,13 +80,25 @@ export class DirectoryWalker {
 
       try {
         const fileStat = await stat(absolutePath);
+        const relativePath = this.toRelative(rootPath, absolutePath);
+
+        if (options.maxBytes !== undefined && fileStat.size > options.maxBytes) {
+          this.logger.verbose(
+            `Skipping file over max bytes: ${relativePath} (${fileStat.size}/${options.maxBytes} bytes)`,
+          );
+          continue;
+        }
+
         const file: FileEntry = {
           absolutePath,
-          relativePath: this.toRelative(rootPath, absolutePath),
+          relativePath,
           extension: extname(entry.name).toLowerCase(),
           sizeBytes: fileStat.size,
         };
         files.push(file);
+        this.logger.verbose(
+          `Found file: ${file.relativePath} (${file.sizeBytes} bytes, ${files.length} included)`,
+        );
         this.logger.progress(`Scanning: ${directories.length} folders, ${files.length} files`);
       } catch (error) {
         this.recordError(errors, 'traversal', absolutePath, error);

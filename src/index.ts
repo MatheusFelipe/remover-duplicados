@@ -39,6 +39,7 @@ function toAppOptions(options: RemoverDuplicadosOptions): AppOptions {
     mode,
     logMode: options.verbose ? 'verbose' : 'silent',
     recursive: options.recursive ?? false,
+    maxBytes: options.maxBytes,
     reportPath: outputPaths.reportPath,
     errorLogPath: outputPaths.errorLogPath,
   };

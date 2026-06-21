@@ -22,6 +22,7 @@ npm install
 ```bash
 npm run dev -- --path /caminho/da/pasta --dry-run
 npm run dev -- --path /caminho/da/pasta --recursive --dry-run
+npm run dev -- --path /caminho/da/pasta --recursive --max-bytes 1mb --dry-run
 npm run build
 npm run build:bundle
 npm run start -- --path /caminho/da/pasta --dry-run
@@ -54,6 +55,13 @@ Para remover duplicatas de fato, use `--execute`:
 npm run dev -- --path /caminho/da/pasta --execute
 ```
 
+Para processar apenas arquivos até um tamanho máximo, use `--max-bytes`:
+
+```bash
+npm run dev -- --path /caminho/da/pasta --recursive --max-bytes 1024
+npm run dev -- --path /caminho/da/pasta --recursive --max-bytes 1mb
+```
+
 Opções disponíveis:
 
 ```bash
@@ -62,6 +70,7 @@ Opções disponíveis:
 --execute          Remove arquivos duplicados.
 --recursive        Analisa subpastas recursivamente.
 --verbose          Mostra logs detalhados.
+--max-bytes <size> Processa apenas arquivos até esse tamanho. Exemplos: 1024, 1mb.
 --report <file>    Caminho do relatório txt.
 --error-log <file> Caminho do log de erros txt.
 --help             Mostra ajuda.
@@ -107,6 +116,7 @@ const result = await removerDuplicados({
   targetPath: '/caminho/da/pasta',
   mode: 'dry-run',
   recursive: true,
+  maxBytes: 1024, // processa arquivos de até 1024 bytes
 });
 
 console.log(result.duplicateFilesFound);
@@ -161,6 +171,7 @@ Rodar na pasta sincronizada:
 ```bash
 node remover-duplicados.mjs --path /caminho/da/pasta --dry-run
 node remover-duplicados.mjs --path /caminho/da/pasta --recursive --execute --verbose
+node remover-duplicados.mjs --path /caminho/da/pasta --recursive --max-bytes 1mb --dry-run
 ```
 
 Não copie `node_modules`. Também não precisa copiar `dist/` nem `package.json` quando usar o bundle `.mjs`.
@@ -203,6 +214,7 @@ Esses comandos criam uma fixture em `reports/smoke-input`, rodam dry-run, rodam 
 
 - o modo padrão não remove duplicatas em subpastas;
 - `--recursive` encontra e remove duplicatas em subpastas;
+- `--max-bytes` limita a análise a arquivos dentro do tamanho configurado;
 - o import programático respeita `recursive: false` e `recursive: true`;
 - arquivo mantido continuou existindo;
 - arquivos com mesmo tamanho mas conteúdo diferente não foram removidos.
