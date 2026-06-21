@@ -49,6 +49,16 @@ export class ArgumentParser {
       throw new Error(`Unknown option: ${arg}`);
     }
 
+    if (flags.has('--complete') && flags.has('--dry-run')) {
+      throw new Error('Use either --complete or --dry-run, not both.');
+    }
+
+    if (flags.has('--complete')) {
+      flags.add('--recursive');
+      flags.add('--execute');
+      flags.add('--verbose');
+    }
+
     if (flags.has('--dry-run') && flags.has('--execute')) {
       throw new Error('Use either --dry-run or --execute, not both.');
     }
@@ -83,13 +93,14 @@ export class ArgumentParser {
   usage(): string {
     return [
       'Usage:',
-      '  npm run dev -- --path <folder> [--dry-run|--execute] [--recursive] [--verbose]',
-      '  npm run start -- --path <folder> [--dry-run|--execute] [--recursive] [--verbose]',
+      '  npm run dev -- --path <folder> [--dry-run|--execute|--complete] [--recursive] [--verbose]',
+      '  npm run start -- --path <folder> [--dry-run|--execute|--complete] [--recursive] [--verbose]',
       '',
       'Options:',
       '  --path <folder>       Folder to scan recursively. Positional path also works.',
       '  --dry-run             Do not remove files. Default mode.',
       '  --execute             Remove duplicate files.',
+      '  --complete            Shortcut for --recursive --execute --verbose.',
       '  --recursive           Scan subfolders recursively.',
       '  --verbose             Print detailed progress logs.',
       '  --max-bytes <size>    Process only files up to this size. Examples: 1024, 1mb.',
@@ -133,6 +144,6 @@ export class ArgumentParser {
   }
 
   private isFlag(arg: string): boolean {
-    return ['--dry-run', '--execute', '--recursive', '--verbose'].includes(arg);
+    return ['--dry-run', '--execute', '--complete', '--recursive', '--verbose'].includes(arg);
   }
 }

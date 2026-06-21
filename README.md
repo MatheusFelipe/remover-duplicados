@@ -2,7 +2,7 @@
 
 API e CLI em Node.js + TypeScript para encontrar e remover arquivos duplicados dentro de uma pasta.
 
-Por padrão, o script analisa apenas os arquivos diretamente dentro da pasta informada. Use `--recursive` na CLI ou `recursive: true` na API para descer em subpastas. Ele agrupa arquivos por extensão e tamanho em bytes, e calcula MD5 apenas nos grupos candidatos. Duplicata confirmada = mesma extensão, mesmo tamanho e mesmo MD5. O primeiro caminho em ordem lexicográfica é mantido; os demais podem ser removidos.
+Por padrão, o script analisa apenas os arquivos diretamente dentro da pasta informada. Use `--recursive` na CLI ou `recursive: true` na API para descer em subpastas. Ele agrupa arquivos por extensão e tamanho em bytes, e calcula MD5 apenas nos grupos candidatos. Duplicata confirmada = mesma extensão, mesmo tamanho e mesmo MD5. O nome original tem prioridade sobre cópias numeradas como `file (1).txt`; depois disso, o primeiro caminho em ordem lexicográfica é mantido.
 
 ## Pré-requisitos
 
@@ -23,6 +23,7 @@ npm install
 npm run dev -- --path /caminho/da/pasta --dry-run
 npm run dev -- --path /caminho/da/pasta --recursive --dry-run
 npm run dev -- --path /caminho/da/pasta --recursive --max-bytes 1mb --dry-run
+npm run dev -- --path /caminho/da/pasta --complete --max-bytes 1mb
 npm run build
 npm run build:bundle
 npm run start -- --path /caminho/da/pasta --dry-run
@@ -55,6 +56,13 @@ Para remover duplicatas de fato, use `--execute`:
 npm run dev -- --path /caminho/da/pasta --execute
 ```
 
+Para rodar o fluxo completo, use `--complete`. Ele equivale a `--recursive --execute --verbose` e não pode ser usado junto com `--dry-run`:
+
+```bash
+npm run dev -- --path /caminho/da/pasta --complete
+npm run dev -- --path /caminho/da/pasta --complete --max-bytes 1mb
+```
+
 Para processar apenas arquivos até um tamanho máximo, use `--max-bytes`:
 
 ```bash
@@ -68,6 +76,7 @@ Opções disponíveis:
 --path <dir>       Pasta alvo. Também aceita caminho posicional.
 --dry-run          Simula remoção. Padrão.
 --execute          Remove arquivos duplicados.
+--complete         Atalho para --recursive --execute --verbose.
 --recursive        Analisa subpastas recursivamente.
 --verbose          Mostra logs detalhados.
 --max-bytes <size> Processa apenas arquivos até esse tamanho. Exemplos: 1024, 1mb.
@@ -171,6 +180,7 @@ Rodar na pasta sincronizada:
 ```bash
 node remover-duplicados.mjs --path /caminho/da/pasta --dry-run
 node remover-duplicados.mjs --path /caminho/da/pasta --recursive --execute --verbose
+node remover-duplicados.mjs --path /caminho/da/pasta --complete --max-bytes 1mb
 node remover-duplicados.mjs --path /caminho/da/pasta --recursive --max-bytes 1mb --dry-run
 ```
 
@@ -214,7 +224,9 @@ Esses comandos criam uma fixture em `reports/smoke-input`, rodam dry-run, rodam 
 
 - o modo padrão não remove duplicatas em subpastas;
 - `--recursive` encontra e remove duplicatas em subpastas;
+- `--complete` equivale a `--recursive --execute --verbose` e rejeita `--dry-run`;
 - `--max-bytes` limita a análise a arquivos dentro do tamanho configurado;
+- o arquivo original, como `file.txt`, tem prioridade sobre cópias numeradas;
 - o import programático respeita `recursive: false` e `recursive: true`;
 - arquivo mantido continuou existindo;
 - arquivos com mesmo tamanho mas conteúdo diferente não foram removidos.

@@ -3,12 +3,14 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { join } from 'node:path';
 
 const cliFixtureRoot = 'reports/smoke-cli-input';
+const completeFixtureRoot = 'reports/smoke-complete-input';
 const apiFixtureRoot = 'reports/smoke-api-input';
 const maxBytesFixtureRoot = 'reports/smoke-max-bytes-input';
 const defaultDryReport = 'reports/smoke-default-dry.txt';
 const defaultExecuteReport = 'reports/smoke-default-execute.txt';
 const recursiveDryReport = 'reports/smoke-recursive-dry.txt';
 const recursiveExecuteReport = 'reports/smoke-recursive-execute.txt';
+const completeReport = 'reports/smoke-complete.txt';
 const maxBytesReport = 'reports/smoke-max-bytes.txt';
 const apiDefaultReport = 'reports/smoke-api-default.txt';
 const apiRecursiveReport = 'reports/smoke-api-recursive.txt';
@@ -66,6 +68,24 @@ async function main() {
   ]);
   assertRecursiveExecute();
 
+  resetCompleteFixture(completeFixtureRoot);
+  runCliFails(
+    ['--path', completeFixtureRoot, '--complete', '--dry-run'],
+    'Use either --complete or --dry-run, not both.',
+  );
+  runCli([
+    '--path',
+    completeFixtureRoot,
+    '--complete',
+    '--max-bytes',
+    '20',
+    '--report',
+    completeReport,
+    '--error-log',
+    errorLog,
+  ]);
+  assertCompleteExecute();
+
   resetMaxBytesFixture(maxBytesFixtureRoot);
   runCli([
     '--path',
@@ -92,6 +112,7 @@ function resetFixture(root) {
   rmSync(defaultExecuteReport, { force: true });
   rmSync(recursiveDryReport, { force: true });
   rmSync(recursiveExecuteReport, { force: true });
+  rmSync(completeReport, { force: true });
   rmSync(maxBytesReport, { force: true });
   rmSync(apiDefaultReport, { force: true });
   rmSync(apiRecursiveReport, { force: true });
@@ -104,6 +125,13 @@ function resetFixture(root) {
   writeFileSync(join(root, 'unique.txt'), 'unique-content');
   writeFileSync(join(root, 'same-size-a.txt'), 'xxxx');
   writeFileSync(join(root, 'nested', 'same-size-b.txt'), 'yyyy');
+}
+
+function resetCompleteFixture(root) {
+  resetFixture(root);
+  writeFileSync(join(root, 'file.txt'), 'same-name-content');
+  writeFileSync(join(root, 'file (1).txt'), 'same-name-content');
+  writeFileSync(join(root, 'file (2).txt'), 'same-name-content');
 }
 
 function resetMaxBytesFixture(root) {
@@ -126,6 +154,16 @@ function runCli(args) {
     console.error(result.stderr);
     throw new Error(`CLI failed with status ${result.status}`);
   }
+}
+
+function runCliFails(args, expectedError) {
+  const result = spawnSync('node', [cliEntry, ...args], {
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+
+  assert(result.status !== 0, 'CLI should have failed');
+  assert(result.stderr.includes(expectedError), `CLI error missing: ${expectedError}`);
 }
 
 function assertDefaultDryRun() {
@@ -197,6 +235,21 @@ function assertRecursiveExecute() {
     report.includes('Removed: nested/dup-a.txt'),
     'recursive execute report missing removed file',
   );
+}
+
+function assertCompleteExecute() {
+  const files = listFiles(completeFixtureRoot);
+  const report = readFileSync(completeReport, 'utf8');
+
+  assert(!files.includes('nested/dup-a.txt'), 'complete did not scan and remove nested duplicate');
+  assert(files.includes('keep-a.txt'), 'complete removed kept nested duplicate source');
+  assert(files.includes('file.txt'), 'priority sort removed original filename');
+  assert(!files.includes('file (1).txt'), 'priority sort kept numbered duplicate');
+  assert(!files.includes('file (2).txt'), 'priority sort kept numbered duplicate');
+  assert(report.includes('Mode: execute'), 'complete report missing execute mode');
+  assert(report.includes('Keep: file.txt'), 'priority sort report did not keep original filename');
+  assert(report.includes('Removed: file (1).txt'), 'complete report missing numbered removal');
+  assert(report.includes('Removed: file (2).txt'), 'complete report missing numbered removal');
 }
 
 function assertMaxBytesDryRun() {

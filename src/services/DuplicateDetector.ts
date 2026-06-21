@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
+import { parse, sep } from 'node:path';
 import type {
   DetectionResult,
   DuplicateGroup,
@@ -58,7 +59,7 @@ export class DuplicateDetector {
         }
 
         const sorted = [...hashBucket].sort((left, right) =>
-          left.relativePath.localeCompare(right.relativePath),
+          this.compareKeepCandidate(left, right),
         );
         const [keep, ...duplicates] = sorted;
 
@@ -114,6 +115,32 @@ export class DuplicateDetector {
       stream.on('data', (chunk) => hash.update(chunk));
       stream.on('end', () => resolve(hash.digest('hex')));
     });
+  }
+
+  private compareKeepCandidate(left: FileEntry, right: FileEntry): number {
+    const leftPriority = this.keepPriority(left.relativePath);
+    const rightPriority = this.keepPriority(right.relativePath);
+
+    return (
+      leftPriority.canonicalPath.localeCompare(rightPriority.canonicalPath) ||
+      leftPriority.copyIndex - rightPriority.copyIndex ||
+      left.relativePath.localeCompare(right.relativePath)
+    );
+  }
+
+  private keepPriority(relativePath: string): {
+    readonly canonicalPath: string;
+    readonly copyIndex: number;
+  } {
+    const parsed = parse(relativePath);
+    const copyMatch = parsed.name.match(/^(.*) \((\d+)\)$/);
+    const canonicalName = `${copyMatch?.[1] ?? parsed.name}${parsed.ext}`;
+    const canonicalPath = parsed.dir ? `${parsed.dir}${sep}${canonicalName}` : canonicalName;
+
+    return {
+      canonicalPath,
+      copyIndex: copyMatch ? Number(copyMatch[2]) : 0,
+    };
   }
 
   private percentage(done: number, total: number): number {
